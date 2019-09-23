@@ -5,8 +5,8 @@ namespace WpMinions\RabbitMQ;
 use WpMinions\Worker as BaseWorker;
 
 /**
- * The Gearman Worker uses the libGearman API to execute Jobs in the
- * Gearman queue. The servers that the Worker should connect to are
+ * The RabbitMQ Worker uses the  php-amqplib to execute Jobs in the
+ * RabbitMQ queue. The servers that the Worker should connect to are
  * configured as part of the initialization.
  *
  */
@@ -44,7 +44,10 @@ class Worker extends BaseWorker {
 			return false;
 		}
 
-		$this->connection->get_channel()->basic_consume( 'wordpress', '', false, true, false, false, function( $message ) {
+		#https://stackoverflow.com/questions/31915773/rabbimq-what-are-ready-unacked-types-of-messages
+		// if we want to process messages one by one uncomment this line otherwise worker will consume a lot of messages but still will need to acknowledge them to rabbimq
+		$this->connection->get_channel()->basic_qos(null, 1, null);
+		$this->connection->get_channel()->basic_consume( $this->connection->get_queue(), '', false, false, false, false, function( $message ) {
 			try {
 				$job_data = json_decode( $message->body, true );
 				$hook     = $job_data['hook'];
@@ -70,12 +73,16 @@ class Worker extends BaseWorker {
 
 				do_action( 'wp_async_task_after_job', $hook, $message );
 				do_action( 'wp_async_task_after_job_' . $hook, $message );
-
+				// let's now our rabbitmq that message is acknowledged 
+				$message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
 				$result = true;
-			} catch ( \Exception $e ) {
+			} catch ( \Throwable $e ) {
 				error_log(
 					'RabbitMQWorker->do_job failed: ' . $e->getMessage()
 				);
+				// maybe exit on exception?
+				// so the supervior will restart worker?
+				// exit;
 				$result = false;
 			}
 
