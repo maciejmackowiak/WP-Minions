@@ -63,6 +63,13 @@ class Client extends BaseClient {
 
 		$message = new \PhpAmqpLib\Message\AMQPMessage(
 			json_encode( $job_data ) );
+			
+		// if deduplication feature is enabled
+		if(defined( 'WP_MINIONS_RABBITMQ_DEDUPLICATION' ) ) {
+			// use hashed json encoded job data as x-deduplication-header
+			$headers = new \PhpAmqpLib\Wire\AMQPTable(array("x-deduplication-header" => md5(json_encode( $job_data ))));
+			$message->set('application_headers', $headers);
+		}
 		// lets make sure node didn't crash
 		try {
 			$this->connection->get_channel()->basic_publish( $message, '', $this->connection->get_queue() );

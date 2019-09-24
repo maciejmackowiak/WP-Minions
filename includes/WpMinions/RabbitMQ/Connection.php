@@ -45,8 +45,12 @@ class Connection {
 			$rabbitmq_declare_durable_filter    = apply_filters( 'wp_minion_rabbitmq_declare_durable_filter', true );
 			$rabbitmq_declare_exclusive_filter  = apply_filters( 'wp_minion_rabbitmq_declare_exclusive_filter', false );
 			$rabbitmq_declare_autodelete_filter = apply_filters( 'wp_minion_rabbitmq_declare_autodelete_filter', false );
+			$arguments = '';
+			if(defined( 'WP_MINIONS_RABBITMQ_DEDUPLICATION' ) ){
+				$arguments = new \PhpAmqpLib\Wire\AMQPTable(array("x-message-deduplication" => true));
+			}
 
-			$this->channel->queue_declare( $this->queue, $rabbitmq_declare_passive_filter, $rabbitmq_declare_durable_filter, $rabbitmq_declare_exclusive_filter, $rabbitmq_declare_autodelete_filter );
+			$this->channel->queue_declare( $this->queue, $rabbitmq_declare_passive_filter, $rabbitmq_declare_durable_filter, $rabbitmq_declare_exclusive_filter, $rabbitmq_declare_autodelete_filter, false, $arguments);
 			add_action( 'shutdown', array( $this, 'shutdown' ) );
 		} else {
 			throw new \Exception( 'Could not create connection.' );
