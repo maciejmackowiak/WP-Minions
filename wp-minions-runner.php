@@ -25,16 +25,11 @@ if ( ! defined( 'PHPUNIT_RUNNER' ) ) {
 	define( 'DOING_ASYNC', true );
 
 	if ( ! defined( 'ABSPATH' ) ) {
-		/** Set up WordPress environment - using SCRIPT_FILENAME so that this file works even if its a symlink! */
-		
+
 		if (file_exists(__DIR__ . '/../../../wordpress/wp-load.php')) {
 			require_once(__DIR__ . '/../../../wordpress/wp-load.php');
-		} elseif (file_exists(__DIR__ . '/../../../../wp-load.php')) {
-			require_once(__DIR__ . '/../../../../wp-load.php');
 		} elseif (file_exists(__DIR__ . '/../../../wp-load.php')) {
 			require_once __DIR__ . '/../../../wp-load.php';
-		} elseif (file_exists(__DIR__ . '/../../wp-load.php')) {
-			require_once(__DIR__ . '/../../wp-load.php');
 		} else {
 			error_log(
 				'WP Minions Fatal Error - Cannot find wp-load.php'

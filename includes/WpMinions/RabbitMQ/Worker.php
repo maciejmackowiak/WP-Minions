@@ -44,8 +44,7 @@ class Worker extends BaseWorker {
 			return false;
 		}
 
-		#https://stackoverflow.com/questions/31915773/rabbimq-what-are-ready-unacked-types-of-messages
-		// if we want to process messages one by one uncomment this line otherwise worker will consume a lot of messages but still will need to acknowledge them to rabbimq
+		// we want to process messages one by one
 		$this->connection->get_channel()->basic_qos(null, 1, null);
 		$this->connection->get_channel()->basic_consume( $this->connection->get_queue(), '', false, false, false, false, function( $message ) {
 			try {
@@ -73,16 +72,14 @@ class Worker extends BaseWorker {
 
 				do_action( 'wp_async_task_after_job', $hook, $message );
 				do_action( 'wp_async_task_after_job_' . $hook, $message );
-				// let's now our rabbitmq that message is acknowledged 
+				// acknowledge message so it will be removed from the queue
 				$message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
 				$result = true;
 			} catch ( \Throwable $e ) {
 				error_log(
 					'RabbitMQWorker->do_job failed: ' . $e->getMessage()
 				);
-				// maybe exit on exception?
-				// so the supervior will restart worker?
-				// exit;
+				exit;
 				$result = false;
 			}
 
