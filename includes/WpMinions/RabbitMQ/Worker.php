@@ -76,11 +76,23 @@ class Worker extends BaseWorker {
 				$message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
 				$result = true;
 			} catch ( \Throwable $e ) {
+				$job_data = json_decode( $message->body, true );
+				$hook     = $job_data['hook'];
+				$args     = $job_data['args'];
+				// log error with job details
 				error_log(
-					'RabbitMQWorker->do_job failed: ' . $e->getMessage()
+					'RabbitMQWorker->do_job failed: ' . $e->getMessage() . "\n".
+					'stack trace: ' . $e->getTraceAsString() . "\n".
+					'hook: ' . $hook . "\n".
+					'args: ' . print_r($args, true)
 				);
-				exit;
+				// acknowledge message so it will be removed from the queue we need to remove it from the queue to prevent creating endless loop when for example there is an php error in the task
+
+				// @TODO: consider trying to run this job once again in case worker just died doing the job
+				// but after second time we need to remove it from the queue
+				$message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
 				$result = false;
+				exit;
 			}
 
 			if ( $switched ) {
